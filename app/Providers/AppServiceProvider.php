@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use App\Interfaces\AddressProviderInterface;
 use App\Services\ViaCepService;
+use App\Services\BrasilApiService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -13,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(AddressProviderInterface::class, ViaCepService::class);
+        $this->app->bind(AddressProviderInterface::class, BrasilApiService::class);
     }
 
     /**

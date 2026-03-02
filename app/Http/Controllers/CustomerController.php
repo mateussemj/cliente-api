@@ -5,62 +5,50 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreCustomerRequest;
 use App\Http\Requests\UpdateCustomerRequest;
 use App\Models\Customer;
+use App\Interfaces\AddressProviderInterface;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Http\JsonResponse;
 
 class CustomerController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(): JsonResponse
     {
-        //
-    }
+        $customers = Customer::latest()->paginate(10);
+        
+        $customers->getCollection()->transform(function ($customer) {
+            $customer->endereco_formatado = $customer->full_address;
+            return $customer;
+        });
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+        return response()->json($customers);
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreCustomerRequest $request)
+    public function store(StoreCustomerRequest $request, AddressProviderInterface $addressProvider): JsonResponse
     {
-        //
-    }
+        $data = $request->validated();
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Customer $customer)
-    {
-        //
-    }
+        $address = $addressProvider->getAddressByCep($data['cep']);
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Customer $customer)
-    {
-        //
-    }
+        if (!$address) {
+            return response()->json(['error' => 'CEP inválido ou não encontrado.'], 422);
+        }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateCustomerRequest $request, Customer $customer)
-    {
-        //
-    }
+        try {
+            $customer = DB::transaction(function () use ($data, $address) {
+                $customerData = array_merge($data, $address);
+                return Customer::create($customerData);
+            });
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Customer $customer)
-    {
-        //
+            return response()->json($customer, 201);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Erro interno ao salvar o cliente.'], 500);
+        }
     }
 }

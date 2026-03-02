@@ -21,18 +21,28 @@ class ViaCepService implements AddressProviderInterface
 
         return Cache::remember($cacheKey, now()->addDays(30), function () use ($cleanCep) {
             try {
-                $response = Http::timeout(5)->get("https://viacep.com.br/ws/{$cleanCep}/json/");
+                $response = Http::withoutVerifying()
+                    ->withUserAgent('Laravel/Cliente-API')
+                    ->timeout(5)
+                    ->get("https://viacep.com.br/ws/{$cleanCep}/json/");
 
-                if ($response->successful() && !isset($response['erro'])) {
-                    return [
-                        'street' => $response['logradouro'],
-                        'neighborhood' => $response['bairro'],
-                        'city' => $response['localidade'],
-                        'state' => $response['uf'],
-                    ];
+                $data = $response->json();
+
+                if ($response->successful() && is_array($data)) {
+                    if (!isset($data['erro'])) {
+                        return [
+                            'street' => $data['logradouro'] ?? '',
+                            'neighborhood' => $data['bairro'] ?? '',
+                            'city' => $data['localidade'] ?? '',
+                            'state' => $data['uf'] ?? '',
+                        ];
+                    }
+
+                    Log::warning("ViaCEP: CEP não encontrado na base deles - {$cleanCep}");
+                    return null;
                 }
 
-                Log::warning("ViaCEP: CEP não encontrado - {$cleanCep}");
+                Log::error("ViaCEP falhou ou bloqueou a requisição. Status: {$response->status()} | Body: {$response->body()}");
                 return null;
 
             } catch (\Exception $e) {
