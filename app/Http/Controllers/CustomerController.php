@@ -51,4 +51,67 @@ class CustomerController extends Controller
             return response()->json(['error' => 'Erro interno ao salvar o cliente.'], 500);
         }
     }
+    
+    /**
+     * Display the specified resource.
+     */
+    public function show(Customer $customer): JsonResponse
+    {
+        $customer->endereco_formatado = $customer->full_address;
+        
+        return response()->json($customer);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(UpdateCustomerRequest $request, Customer $customer, AddressProviderInterface $addressProvider): JsonResponse
+    {
+        $data = $request->validated();
+
+        if (empty($data)) {
+            return response()->json([
+                'error' => 'Nenhum dado válido foi fornecido para atualização.',
+                'dica' => 'Os campos aceitos são: name, email, document e cep.'
+            ], 400);
+        }
+
+        if (isset($data['cep']) && $data['cep'] !== $customer->cep) {
+            $address = $addressProvider->getAddressByCep($data['cep']);
+
+            if (!$address) {
+                return response()->json(['error' => 'CEP inválido ou não encontrado.'], 422);
+            }
+
+            $data = array_merge($data, $address);
+        }
+
+        try {
+            DB::transaction(function () use ($customer, $data) {
+                $customer->update($data);
+            });
+
+            $customer->endereco_formatado = $customer->full_address;
+
+            return response()->json($customer);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Erro interno ao atualizar o cliente.'], 500);
+        }
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(Customer $customer): JsonResponse
+    {
+        try {
+            $customer->delete();
+            
+            return response()->json(null, 204); 
+            
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Erro interno ao deletar o cliente.'], 500);
+        }
+    }
 }

@@ -8,10 +8,10 @@ class UpdateCustomerRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
-     */
+    */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -21,8 +21,13 @@ class UpdateCustomerRequest extends FormRequest
      */
     public function rules(): array
     {
+        $customerId = $this->route('customer')->id;
+
         return [
-            //
+            'name' => 'sometimes|required|string|max:255',
+            'email' => 'sometimes|required|email|unique:customers,email,' . $customerId,
+            'document' => 'sometimes|required|string|unique:customers,document,' . $customerId,
+            'cep' => 'sometimes|required|string|min:8|max:9',
         ];
     }
 }
