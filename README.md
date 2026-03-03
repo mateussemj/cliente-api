@@ -1,59 +1,64 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# API de Cadastro de Clientes - Laravel
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Uma API RESTful desenvolvida em Laravel para gerenciar o cadastro de clientes. O sistema realiza a busca automática e preenchimento de endereços consumindo uma API externa de CEP.
 
-## About Laravel
+## Tecnologias e Requisitos
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **PHP 8.2+** & **Laravel 10+**
+- **Arquitetura:** Uso de Controllers, FormRequests para validação, Models (com $fillable, Local Scopes e Accessors) e Migrations.
+- **Service Layer & Interfaces:** A integração com a API de CEP foi isolada através da AddressProviderInterface. Isso permite a fácil substituição do provedor de dados (ex: trocar ViaCEP por BrasilAPI) sem alterar a regra de negócio do Controller.
+- **Facades:** Utilização de Facades nativas do Laravel:
+  - Http: Para requisições HTTP externas.
+  - Cache: Para otimização de performance.
+  - Log: Para rastreamento de erros e debug.
+  - DB: Para garantir a integridade dos dados via transações.
+- **Testes:** Cobertura de testes automatizados utilizando Pest, com Mock da interface de integração externa.
+- **Banco de Dados:** MySQL (via Docker) para a aplicação e SQLite (em memória) para os testes automatizados. Seeders e Factories configurados para popular o banco.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+##  Pré-requisitos
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Para rodar este projeto localmente, você precisará ter instalado em sua máquina:
+- PHP 8.2 ou superior (com a extensão sqlite3 habilitada para rodar os testes).
+- Composer.
+- Docker e Docker Compose (para subir o banco MySQL de desenvolvimento).
 
-## Learning Laravel
+##  Como rodar o projeto localmente
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+1. Clone o repositório:
+   git clone https://github.com/mateussemj/cliente-api.git
+   cd cliente-api
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+2. Instale as dependências do PHP:
+   composer install
 
-## Laravel Sponsors
+3. Configure as variáveis de ambiente:
+   cp .env.example .env
+   php artisan key:generate
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+   (Nota: O arquivo .env.example já está configurado com as credenciais padrão para conectar no contêiner Docker do projeto).
 
-### Premium Partners
+4. Suba o banco de dados MySQL via Docker:
+   docker compose up -d
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+5. Rode as migrations e popule o banco (Factory com 20 clientes falsos):
+   php artisan migrate --seed
 
-## Contributing
+6. Inicie o servidor local do Laravel:
+   php artisan serve
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+   A API estará disponível em http://localhost:8000/api/customers.
 
-## Code of Conduct
+##  Como rodar os testes
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+A aplicação utiliza o Pest para testes automatizados. 
 
-## Security Vulnerabilities
+Aviso importante: Os testes foram configurados para rodar em um banco de dados SQLite em memória para maior velocidade e para não interferir no banco de dados de desenvolvimento. Certifique-se de que a extensão SQLite está instalada no seu PHP (ex: sudo apt-get install php-sqlite3).
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Para executar a suíte de testes (que inclui o mock da API externa de CEP), rode:
+   php artisan test
 
-## License
+##  Decisões Técnicas
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+- **Desacoplamento de API Externa:** A busca de CEP não ocorre diretamente no Controller. Foi criada uma AddressProviderInterface. Se a API externa principal cair, basta injetar outro Service no AppServiceProvider e o sistema continua funcionando perfeitamente.
+- **Cache de Requisições:** Respostas de sucesso da API externa são cacheadas por 30 dias usando Cache::remember(). Isso evita chamadas repetidas para o mesmo CEP, melhorando o tempo de resposta e evitando bloqueios por excesso de requisições.
+- **Database Transactions:** O salvamento dos dados mesclados (Input do usuário + Dados da API de CEP) ocorre dentro de um bloco DB::transaction(). Se houver qualquer falha durante a persistência, o banco sofre um rollback, garantindo que nenhum registro fique pela metade.
