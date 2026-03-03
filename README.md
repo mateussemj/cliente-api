@@ -43,7 +43,10 @@ Para rodar este projeto localmente, você precisará ter instalado em sua máqui
 5. Rode as migrations e popule o banco (Factory com 20 clientes falsos):
    php artisan migrate --seed
 
-6. Inicie o servidor local do Laravel:
+6. Gere a documentação inicial do Swagger (opcional):
+   php artisan l5-swagger:generate
+
+7. Inicie o servidor local do Laravel:
    php artisan serve
 
    A API estará disponível em http://localhost:8000/api/customers.
@@ -56,6 +59,16 @@ Aviso importante: Os testes foram configurados para rodar em um banco de dados S
 
 Para executar a suíte de testes (que inclui o mock da API externa de CEP), rode:
    php artisan test
+
+## Documentação da API (Swagger)
+
+A aplicação conta com uma documentação interativa onde é possível visualizar e testar todos os endpoints do CRUD de clientes diretamente pelo navegador.
+
+1. Com o servidor local rodando (`php artisan serve`), acesse no navegador:
+   http://localhost:8000/api/documentation
+
+2. Caso faça alguma alteração nos atributos de documentação do Controller, será necessário regerar com o comando:
+   php artisan l5-swagger:generate
 
 ##  Decisões Técnicas
 

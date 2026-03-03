@@ -8,12 +8,22 @@ use App\Models\Customer;
 use App\Interfaces\AddressProviderInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
+use OpenApi\Attributes as OA;
 
+#[OA\Info(
+    version: "1.0.0",
+    title: "API de Clientes",
+    description: "Documentação interativa do nosso CRUD de clientes com integração de CEP."
+)]
+#[OA\Server(url: "http://localhost:8000")]
 class CustomerController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    #[OA\Get(
+        path: "/api/customers",
+        summary: "Lista todos os clientes",
+        tags: ["Clientes"]
+    )]
+    #[OA\Response(response: 200, description: "Lista de clientes retornada com sucesso")]
     public function index(): JsonResponse
     {
         $customers = Customer::latest()->paginate(10);
@@ -26,9 +36,25 @@ class CustomerController extends Controller
         return response()->json($customers);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+    #[OA\Post(
+        path: "/api/customers",
+        summary: "Cadastra um novo cliente",
+        tags: ["Clientes"]
+    )]
+    #[OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            required: ["name", "email", "document", "cep"],
+            properties: [
+                new OA\Property(property: "name", type: "string", example: "João da Silva"),
+                new OA\Property(property: "email", type: "string", example: "joao@email.com"),
+                new OA\Property(property: "document", type: "string", example: "12345678901"),
+                new OA\Property(property: "cep", type: "string", example: "01001000")
+            ]
+        )
+    )]
+    #[OA\Response(response: 201, description: "Cliente criado com sucesso")]
+    #[OA\Response(response: 422, description: "Erro de validação ou CEP inválido")]
     public function store(StoreCustomerRequest $request, AddressProviderInterface $addressProvider): JsonResponse
     {
         $data = $request->validated();
@@ -52,9 +78,20 @@ class CustomerController extends Controller
         }
     }
     
-    /**
-     * Display the specified resource.
-     */
+    #[OA\Get(
+        path: "/api/customers/{customer}",
+        summary: "Busca os detalhes de um cliente específico",
+        tags: ["Clientes"]
+    )]
+    #[OA\Parameter(
+        name: "customer",
+        description: "ID do Cliente",
+        in: "path",
+        required: true,
+        schema: new OA\Schema(type: "integer")
+    )]
+    #[OA\Response(response: 200, description: "Detalhes do cliente retornados com sucesso")]
+    #[OA\Response(response: 404, description: "Cliente não encontrado")]
     public function show(Customer $customer): JsonResponse
     {
         $customer->endereco_formatado = $customer->full_address;
@@ -62,9 +99,31 @@ class CustomerController extends Controller
         return response()->json($customer);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
+    #[OA\Put(
+        path: "/api/customers/{customer}",
+        summary: "Atualiza os dados de um cliente",
+        tags: ["Clientes"]
+    )]
+    #[OA\Parameter(
+        name: "customer",
+        description: "ID do Cliente",
+        in: "path",
+        required: true,
+        schema: new OA\Schema(type: "integer")
+    )]
+    #[OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(property: "name", type: "string", example: "João Editado"),
+                new OA\Property(property: "cep", type: "string", example: "81280120")
+            ]
+        )
+    )]
+    #[OA\Response(response: 200, description: "Cliente atualizado com sucesso")]
+    #[OA\Response(response: 400, description: "Nenhum dado válido fornecido")]
+    #[OA\Response(response: 422, description: "Erro de validação ou CEP inválido")]
+    #[OA\Response(response: 404, description: "Cliente não encontrado")]
     public function update(UpdateCustomerRequest $request, Customer $customer, AddressProviderInterface $addressProvider): JsonResponse
     {
         $data = $request->validated();
@@ -100,9 +159,20 @@ class CustomerController extends Controller
         }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
+    #[OA\Delete(
+        path: "/api/customers/{customer}",
+        summary: "Remove um cliente do sistema",
+        tags: ["Clientes"]
+    )]
+    #[OA\Parameter(
+        name: "customer",
+        description: "ID do Cliente",
+        in: "path",
+        required: true,
+        schema: new OA\Schema(type: "integer")
+    )]
+    #[OA\Response(response: 204, description: "Cliente deletado com sucesso (Sem conteúdo)")]
+    #[OA\Response(response: 404, description: "Cliente não encontrado")]
     public function destroy(Customer $customer): JsonResponse
     {
         try {
